@@ -21,4 +21,4 @@ COPY . .
 
 EXPOSE 3000 8000
 
-CMD ["reflex", "run", "--env", "prod"]
+CMD ["reflex", "run", "--env", "prod", "--backend-host", "0.0.0.0"]
