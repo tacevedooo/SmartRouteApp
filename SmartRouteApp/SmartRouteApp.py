@@ -138,7 +138,7 @@ class AppState(rx.State):
     
     # Módulo 2
     resultado_clasificacion: str = "Esperando imagen de cabina..."
-    imagen_procesada_url: rx.Var[str] = ""
+    imagen_procesada_url: rx.Var[str] = rx.Var.create("")
     
     # Módulo 3: Nuevo Sistema de Selección de Usuarios y Recomendación Top 3
     usuarios_sistema: list[dict] = lista_usuarios_inicialalizar
@@ -168,6 +168,7 @@ class AppState(rx.State):
         with open(ruta_salida, "wb") as f:
             f.write(upload_data)
             
+        # Modifica esta línea al final de la función:
         self.imagen_procesada_url = rx.get_upload_url(archivo.filename)
 
         if modelo_keras is not None:
@@ -436,6 +437,16 @@ def vista_modulo2() -> rx.Component:
                     on_click=AppState.manejar_subida_imagen(rx.upload_files(upload_id="subida_cabina")),
                     background=THEME["colors"]["accent"], color="white", border_radius="8px", width="100%", padding="12px", height="auto", _hover={"background": "#2563EB"}
                 ),
+                
+                # Previsualizador de la imagen cargada por el usuario (CORREGIDO: Eliminada etiqueta redundante)
+                rx.cond(
+                    AppState.imagen_procesada_url,
+                    rx.center(
+                        rx.image(src=AppState.imagen_procesada_url, height="200px", object_fit="contain", border_radius="8px", border=f"1px solid {THEME['colors']['border']}"),
+                        width="100%", padding="8px"
+                    )
+                ),
+
                 rx.hstack(
                     rx.icon(tag="shield-alert", size=18, color=THEME["colors"]["alert"]),
                     rx.vstack(
@@ -451,6 +462,7 @@ def vista_modulo2() -> rx.Component:
         ),
         width="100%", align_items="start"
     )
+
 
 # --- VISTA: MÓDULO 3 (SISTEMA DE COMPORTAMIENTO COMPLETO) ---
 def usuario_card_item(user: dict) -> rx.Component:
