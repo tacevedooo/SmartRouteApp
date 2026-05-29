@@ -5,6 +5,11 @@ import torch.nn as nn
 import pandas as pd
 import numpy as np
 
+import tensorflow as tf
+from tensorflow.keras.models import load_model
+from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
+from PIL import Image
+
 # =====================================================================
 # ARQUITECTURA RED NEURONAL 
 # =====================================================================
@@ -35,11 +40,30 @@ class RecommenderNet(torch.nn.Module):
 # 💾 CARGA REAL DE LOS ARTEFACTOS Y DATAFRAMES EN EL SERVIDOR
 # =====================================================================
 modelo_pytorch = None
+modelo_keras = None
 artefactos = {}
 df_final_dataset = None
 df_users_features = None
 df_Destinations = None
-lista_usuarios_inicialalizar = [] # Guardará la lista filtrada de usuarios para la UI
+lista_usuarios_inicialalizar = []
+
+# Tus clases reales de FastAPI
+CLASS_NAMES = [
+    "other_activities",
+    "safe_driving",
+    "talking_phone",
+    "texting_phone",
+    "turning"
+]
+
+# Diccionario opcional para mostrar mensajes más limpios en la UI
+TRADUCCION_CLASES = {
+    "other_activities": "⚠️ ALERTA: Realizando otras actividades en el auto",
+    "safe_driving": "✅ Conducción Segura Detectada",
+    "talking_phone": "⚠️ ALERTA: Conductor hablando por teléfono",
+    "texting_phone": "⚠️ ALERTA: Conductor enviando mensajes de texto",
+    "turning": "🔄 Vehículo girando / Maniobrando"
+}
 
 try:
     # 1. Cargar pesos entrenados y diccionarios desde tu .pt
@@ -92,6 +116,19 @@ try:
 except Exception as e:
     print(f"⚠️ [ERROR AL CARGAR EL MOTOR]: {str(e)}")
 
+
+try:
+    # 2. Cargar clasificador Keras (MobileNetV2)
+    ruta_modelo_keras = "modelo_produccion.keras" 
+    if os.path.exists(ruta_modelo_keras):
+        modelo_keras = load_model(ruta_modelo_keras)
+        print("🧠 [IA] Modelo Keras (.keras) de MobileNetV2 cargado correctamente.")
+    else:
+        print(f"⚠️ [AVISO]: No se encontró '{ruta_modelo_keras}'. Ejecutando Módulo 2 en modo simulación.")
+except Exception as e:
+    print(f"⚠️ [ERROR AL CARGAR MODELO KERAS]: {str(e)}")
+
+
 # =====================================================================
 # 🧠 ESTADO GLOBAL DE LA APLICACIÓN (Lógica de Control)
 # =====================================================================
@@ -99,8 +136,9 @@ class AppState(rx.State):
     """Maneja el enrutamiento interno de pestañas y la lógica de inferencia de los módulos."""
     pestana_activa: str = "inicio"
     
-    # Módulo 2: Clasificación de Imágenes
+    # Módulo 2
     resultado_clasificacion: str = "Esperando imagen de cabina..."
+    imagen_procesada_url: rx.Var[str] = ""
     
     # Módulo 3: Nuevo Sistema de Selección de Usuarios y Recomendación Top 3
     usuarios_sistema: list[dict] = lista_usuarios_inicialalizar
@@ -120,10 +158,41 @@ class AppState(rx.State):
         self.pestana_activa = nueva_pestana
 
     async def manejar_subida_imagen(self, archivos: list[rx.UploadFile]):
-        for archivo in archivos:
-            await archivo.read()
-            self.resultado_clasificacion = "⚠️ ALERTA: Conductor hablando por teléfono celular (Uso de Móvil)"
+        if not archivos:
+            return
             
+        archivo = archivos[0]
+        upload_data = await archivo.read()
+        
+        ruta_salida = rx.get_upload_dir() / archivo.filename
+        with open(ruta_salida, "wb") as f:
+            f.write(upload_data)
+            
+        self.imagen_procesada_url = rx.get_upload_url(archivo.filename)
+
+        if modelo_keras is not None:
+            try:
+                img = Image.open(ruta_salida).convert("RGB")
+                img = img.resize((224, 224))
+                
+                img_array = np.array(img, dtype=np.float32)
+                img_array = preprocess_input(img_array)
+                img_array = np.expand_dims(img_array, axis=0)
+
+                predicciones = modelo_keras.predict(img_array, verbose=0)
+                clase_idx = int(np.argmax(predicciones[0]))
+                confianza = float(predicciones[0][clase_idx]) * 100
+
+                clase_detectada = CLASS_NAMES[clase_idx]
+                mensaje_estetico = TRADUCCION_CLASES.get(clase_detectada, clase_detectada)
+                
+                self.resultado_clasificacion = f"{mensaje_estetico} ({confianza:.2f}% de confianza)"
+            except Exception as e:
+                self.resultado_clasificacion = f"❌ Error al procesar imagen: {str(e)}"
+        else:
+            self.resultado_clasificacion = "⚠️ ALERTA (Simulado): Conductor enviando mensajes de texto (texting_phone)"
+            
+                    
     def seleccionar_usuario_y_recomendar(self, u_info: dict):
         """Selecciona un usuario de la lista limpia y calcula inmediatamente su Top 3."""
         self.usuario_seleccionado_id = u_info["id"]

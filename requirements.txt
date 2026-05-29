@@ -1,4 +1,6 @@
-reflex==0.9.3
+reflex
 torch
 pandas
 numpy
+tensorflow
+pillow
