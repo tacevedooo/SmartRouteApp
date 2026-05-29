@@ -388,15 +388,15 @@ def vista_inicio() -> rx.Component:
     return rx.vstack(
         rx.vstack(
             rx.heading("Bienvenido a SmartRouteApp", size="8", style=STYLES["heading"], font_weight="700"),
-            rx.text("Optimización logística de transporte, seguridad activa en cabina y personalización avanzada mediante Inteligencia Artificial.", style=STYLES["body"], font_size="15px", max_width="700px"),
+            rx.text("Predicción de la demanda de transporte, clasificación para la seguridad de conductores y personalización de destinos turísticos utiliando herramientas de inteligencia artificial.", style=STYLES["body"], font_size="15px", max_width="700px"),
             align_items="start",
             spacing="2",
             margin_bottom="24px"
         ),
         rx.grid(
             modulo_resumen_card("chart-line", "Predicción de Demanda", "Análisis estratégico de series de tiempo a 30 días para flujos de pasajeros."),
-            modulo_resumen_card("eye", "Seguridad Vial", "Detección inteligente de cansancio y conductas de riesgo mediante CNN en tiempo real."),
-            modulo_resumen_card("map-pin", "Motor de Recomendaciones", "Fusión híbrida de algoritmos para asignación inteligente de destinos óptimos."),
+            modulo_resumen_card("eye", "Seguridad Vial", "Detección inteligente de cansancio y conductas de riesgo mediante redes neuronales convolucionales en tiempo real."),
+            modulo_resumen_card("map-pin", "Motor de Recomendaciones", "Asignación inteligente de destinos turísticos usando redes neuronales."),
             columns="3",
             spacing="4",
             width="100%"
@@ -431,7 +431,7 @@ def vista_modulo2() -> rx.Component:
         crear_encabezado_seccion(
             "MÓDULO 02 — CLASIFICACIÓN DE CONDUCCIÓN DISTRACTIVA", 
             "Sistema de Clasificación de Conducción Distractiva", 
-            "Análisis automatizado de transmisiones en cabina para prevenir siniestros viales."
+            "Clasificación automatizada de imágenes de conductores para prevenir siniestros viales."
         ),
         rx.box(
             rx.vstack(
@@ -444,7 +444,7 @@ def vista_modulo2() -> rx.Component:
                             border_radius="50%", 
                             padding="12px"
                         ),
-                        rx.text("Arrastre o seleccione una captura de cabina", color=THEME["colors"]["text_main"], font_size="14px", font_weight="500"),
+                        rx.text("Arrastre o seleccione una imágen", color=THEME["colors"]["text_main"], font_size="14px", font_weight="500"),
                         rx.text("Formatos soportados: PNG, JPG (Máx 10MB)", font_size="12px", color=THEME["colors"]["text_sub"]),
                         align_items="center", 
                         spacing="1"
@@ -509,7 +509,7 @@ def vista_modulo2() -> rx.Component:
                 rx.hstack(
                     rx.icon(tag="shield-alert", size=18, color=THEME["colors"]["accent"]),
                     rx.vstack(
-                        rx.text("RESULTADO DEL ANÁLISIS EN TIEMPO REAL", font_family=THEME["fonts"]["mono"], font_size="10px", color=THEME["colors"]["text_sub"]),
+                        rx.text("RESULTADO DEL ANÁLISIS", font_family=THEME["fonts"]["mono"], font_size="10px", color=THEME["colors"]["text_sub"]),
                         rx.text(
                             AppState.resultado_clasificacion, 
                             color=THEME["colors"]["text_main"], # Cambiado a text_main para que no herede siempre color alerta estático
