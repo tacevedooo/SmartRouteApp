@@ -19,4 +19,4 @@ RUN reflex export --frontend-only --no-zip || true
 
 EXPOSE 8080
 
-CMD ["reflex", "run", "--env", "prod", "--backend-host", "0.0.0.0", "--backend-port", "8080"]
+CMD ["reflex", "run", "--env", "prod", "--backend-host", "0.0.0.0", "--backend-port", "8080", "--frontend-port", "8080"]
