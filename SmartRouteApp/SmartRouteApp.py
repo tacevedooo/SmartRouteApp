@@ -1,42 +1,13 @@
 import reflex as rx
 import os
-import torch
-import torch.nn as nn
 import base64
 import pandas as pd
 import numpy as np
 import time
-
-import tensorflow as tf
-from tensorflow.keras.models import load_model
-from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
-from PIL import Image
-
 # =====================================================================
 # ARQUITECTURA RED NEURONAL 
 # =====================================================================
-class RecommenderNet(torch.nn.Module):
-    def __init__(self, num_users, num_items, num_features, embedding_dim=16):
-        super(RecommenderNet, self).__init__()
-        self.user_embedding = nn.Embedding(num_users, embedding_dim)
-        self.item_embedding = nn.Embedding(num_items, embedding_dim)
-
-        input_dim = (embedding_dim * 2) + num_features
-        self.mlp = nn.Sequential(
-            nn.Linear(input_dim, 32),
-            nn.ReLU(),
-            nn.Dropout(p=0.4),
-            nn.Linear(32, 16),
-            nn.ReLU(),
-            nn.Dropout(p=0.4),
-            nn.Linear(16, 1)
-        )
-
-    def forward(self, user_indices, item_indices, context_features):
-        user_emb = self.user_embedding(user_indices)
-        item_emb = self.item_embedding(item_indices)
-        x = torch.cat([user_emb, item_emb, context_features], dim=1)
-        return torch.sigmoid(self.mlp(x).squeeze()) * 5.0
+RecommenderNet = None
 
 # =====================================================================
 # 💾 CARGA REAL DE LOS ARTEFACTOS Y DATAFRAMES EN EL SERVIDOR
@@ -68,6 +39,32 @@ TRADUCCION_CLASES = {
 }
 
 try:
+
+    import torch
+    import torch.nn as nn
+
+    class RecommenderNet(torch.nn.Module):
+        def __init__(self, num_users, num_items, num_features, embedding_dim=16):
+            super(RecommenderNet, self).__init__()
+            self.user_embedding = nn.Embedding(num_users, embedding_dim)
+            self.item_embedding = nn.Embedding(num_items, embedding_dim)
+            input_dim = (embedding_dim * 2) + num_features
+            self.mlp = nn.Sequential(
+                nn.Linear(input_dim, 32),
+                nn.ReLU(),
+                nn.Dropout(p=0.4),
+                nn.Linear(32, 16),
+                nn.ReLU(),
+                nn.Dropout(p=0.4),
+                nn.Linear(16, 1)
+            )
+
+        def forward(self, user_indices, item_indices, context_features):
+            user_emb = self.user_embedding(user_indices)
+            item_emb = self.item_embedding(item_indices)
+            x = torch.cat([user_emb, item_emb, context_features], dim=1)
+            return torch.sigmoid(self.mlp(x).squeeze()) * 5.0
+
     # 1. Cargar pesos entrenados y diccionarios desde tu .pt
     artefactos = torch.load("modelo_recomendacion_viajes.pt", map_location=torch.device('cpu'))
     
@@ -120,11 +117,11 @@ except Exception as e:
 
 
 try:
-    # 2. Cargar clasificador Keras (MobileNetV2)
-    ruta_modelo_keras = "modelo_produccion.keras" 
+    from tensorflow.keras.models import load_model
+    ruta_modelo_keras = "modelo_produccion.keras"
     if os.path.exists(ruta_modelo_keras):
         modelo_keras = load_model(ruta_modelo_keras)
-        print("🧠 [IA] Modelo Keras (.keras) de MobileNetV2 cargado correctamente.")
+        print("🧠 [IA] Modelo Keras cargado correctamente.")
     else:
         print(f"⚠️ [AVISO]: No se encontró '{ruta_modelo_keras}'. Ejecutando Módulo 2 en modo simulación.")
 except Exception as e:
@@ -182,6 +179,8 @@ class AppState(rx.State):
         if modelo_keras is not None:
             try:
                 import io
+                from PIL import Image
+                from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
                 img = Image.open(io.BytesIO(upload_data)).convert("RGB")
                 img = img.resize((224, 224))
                 
@@ -404,8 +403,6 @@ def vista_inicio() -> rx.Component:
         width="100%",
         align_items="start"
     )
-
-import reflex as rx
 
 def vista_modulo1() -> rx.Component:
     return rx.vstack(
