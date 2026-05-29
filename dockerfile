@@ -13,6 +13,7 @@ RUN pip install -r requirements.txt
 
 COPY . .
 
+
 EXPOSE 3000 8000
 
 CMD ["reflex", "run", "--env", "prod"]
