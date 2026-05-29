@@ -1,6 +1,5 @@
 reflex
-torch
 pandas
 numpy
-tensorflow
 pillow
+# torch y tensorflow se instalan por separado en el Dockerfile con versiones CPU
