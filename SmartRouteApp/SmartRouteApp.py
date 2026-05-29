@@ -405,25 +405,195 @@ def vista_inicio() -> rx.Component:
         align_items="start"
     )
 
+import reflex as rx
+
 def vista_modulo1() -> rx.Component:
     return rx.vstack(
-        crear_encabezado_seccion("MÓDULO 01 — PREDICCIÓN DE DEMANDAS DE TRANSPORTE", "Predicción de Demanda de Transporte", "Proyecciones avanzadas de volumen de pasajeros para la optimización de recursos."),
-        rx.box(
-            rx.vstack(
-                rx.grid(
-                    rx.vstack(rx.text("PROYECCIÓN 30 DÍAS", font_family=THEME["fonts"]["mono"], font_size="10px", color=THEME["colors"]["text_sub"]), rx.text("12,847", font_size="28px", style=STYLES["heading"]), rx.text("Pasajeros estimados", font_size="12px", color=THEME["colors"]["text_sub"]), align_items="start", spacing="0"),
-                    rx.vstack(rx.text("PRECISIÓN DEL MODELO", font_family=THEME["fonts"]["mono"], font_size="10px", color=THEME["colors"]["text_sub"]), rx.text("94.2%", font_size="28px", color=THEME["colors"]["accent_light"], font_family=THEME["fonts"]["main"], font_weight="600"), rx.text("R² Score Validado", font_size="12px", color=THEME["colors"]["text_sub"]), align_items="start", spacing="0"),
-                    columns="2", width="100%", padding_bottom="16px", border_bottom=f"1px solid {THEME['colors']['border']}"
+        # --- ENCABEZADO PRINCIPAL DEL MÓDULO ---
+        crear_encabezado_seccion(
+            "MÓDULO 01 — PREDICCIÓN DE DEMANDAS DE TRANSPORTE", 
+            "Análisis de Rutas de Alta Demanda (NYC TLC)", 
+            "Evaluación de factores dinámicos, ciclos interanuales y proyecciones a 30 días mediante modelos avanzados de Machine Learning."
+        ),
+        
+        rx.divider(border_color="#1E40AF", margin_y="4"),  # Separador azul oscuro
+
+        # =====================================================================
+        # --- SECCIÓN 1: EVOLUCIÓN HISTÓRICA Y CÍCLICA ---
+        # =====================================================================
+        rx.vstack(
+            # 1. Título de la Sección y Breve Descripción
+            rx.heading(
+                "1. Evolución Histórica de la Demanda y Ciclicidad", 
+                size="4", 
+                color="#FFFFFF", 
+                margin_bottom="6px"
+            ),
+            rx.text(
+                "Análisis de la evolución agregada de la demanda mediante una media móvil de 7 días (periodo 2023-2025) enfocado en la ruta conector Upper East Side South → Upper East Side North. "
+                "Se evidencia un comportamiento cíclico anual definido junto con un crecimiento interanual moderado en la cantidad total de viajes analizados.",
+                size="3",
+                color="#9CA3AF",
+                text_align="justify",
+                margin_bottom="16px"
+            ),
+            
+            # 2. Espacio Centrado para la Gráfica Estática (Contenedor Oscuro)
+            rx.center(
+                rx.box(
+                    rx.image(
+                        src="/grafico1.png",  # <-- Primer gráfico (Tendencia Temporal)
+                        width="100%",
+                        height="auto",
+                        border_radius="8px",
+                    ),
+                    background_color="#111827",
+                    border="1px solid #1E40AF",  # Borde azul de acento
+                    padding="16px",
+                    border_radius="14px",
+                    box_shadow="0 10px 25px -5px rgba(0, 0, 0, 0.7)",
+                    width="100%",
+                    max_width="950px",  # Ancho ideal para gráficos de líneas temporales
                 ),
-                rx.center(
-                    rx.vstack(rx.icon(tag="chart-line", size=32, color=THEME["colors"]["text_sub"]), rx.text("El gráfico analítico interactivo se renderizará en este cuadrante.", style=STYLES["body"], font_size="13px"), align_items="center", spacing="2"),
-                    background=THEME["colors"]["bg_base"], height="260px", width="100%", border_radius="10px", border=f"1px dashed {THEME['colors']['border']}", margin_top="16px"
+                width="100%",
+                margin_bottom="20px"
+            ),
+            
+            # 3. Conclusiones Breves de la Gráfica (Estilo Tarjeta de Análisis)
+            rx.box(
+                rx.vstack(
+                    rx.hstack(
+                        rx.text("•", color="#3B82F6", font_weight="bold"),
+                        rx.text(
+                            rx.text("Contracción Invernal (Días 1-50):", font_weight="bold", as_="span"),
+                            " Caída pronunciada de la demanda a inicios de año debido a las condiciones climáticas del invierno septentrional en Nueva York.", 
+                            color="#D1D5DB", 
+                            size="3"
+                        )
+                    ),
+                    rx.hstack(
+                        rx.text("•", color="#3B82F6", font_weight="bold"),
+                        rx.text(
+                            rx.text("Disminución Estival (Días 180-240):", font_weight="bold", as_="span"),
+                            " Reducción notable en julio y agosto por periodos vacacionales y la consecuente baja actividad en traslados de oficinas y negocios.", 
+                            color="#D1D5DB", 
+                            size="3"
+                        )
+                    ),
+                    rx.hstack(
+                        rx.text("•", color="#3B82F6", font_weight="bold"),
+                        rx.text(
+                            rx.text("Pico de Fin de Año (Días 250-350):", font_weight="bold", as_="span"),
+                            " Tendencia sostenida al alza con un máximo masivo hacia mediados de diciembre (días 340-350), impulsado por turismo, fiestas y eventos culturales.", 
+                            color="#D1D5DB", 
+                            size="3"
+                        )
+                    ),
+                    spacing="2",
+                    align_items="start"
                 ),
+                background_color="#111827",
+                border="1px solid #1E40AF66",
+                padding="20px",
+                border_radius="12px",
                 width="100%"
             ),
-            style=STYLES["card"]
+            
+            width="100%",
+            align_items="start",
+            spacing="3",
+            margin_bottom="32px"  # Margen extra para separar las secciones de informe
         ),
-        width="100%", align_items="start"
+
+        # =====================================================================
+        # --- SECCIÓN 2: IMPORTANCIA DE CARACTERÍSTICAS (MÚLTIPLO POR 2) ---
+        # =====================================================================
+        rx.vstack(
+            # 1. Título de la Sección y Breve Descripción
+            rx.heading(
+                "2. Pronóstico a 30 Días y Estrategia del Modelo", 
+                size="4", 
+                color="#FFFFFF", 
+                margin_bottom="6px"
+            ),
+            rx.text(
+                "Proyección para enero de 2026 empleando el algoritmo XGBoost seleccionado como modelo campeón para las rutas prioritarias. "
+                "El pronóstico se ejecutó bajo una estrategia multi-paso recursiva, utilizando la salida previa para recalcular iterativamente los componentes rezagados.",
+                size="3",
+                color="#9CA3AF",
+                text_align="justify",
+                margin_bottom="16px"
+            ),
+            
+            # 2. Espacio Centrado para la Gráfica Estática (Contenedor Oscuro)
+            rx.center(
+                rx.box(
+                    rx.image(
+                        src="/grafico2.png",  # <-- Segundo gráfico (Feature Importance / SHAP)
+                        width="100%",
+                        height="auto",
+                        border_radius="8px",
+                    ),
+                    background_color="#111827",
+                    border="1px solid #1E40AF",  # Mismo diseño del borde
+                    padding="16px",
+                    border_radius="14px",
+                    box_shadow="0 10px 25px -5px rgba(0, 0, 0, 0.7)",
+                    width="100%",
+                    max_width="950px",
+                ),
+                width="100%",
+                margin_bottom="20px"
+            ),
+            
+            # 3. Conclusiones Breves de la Gráfica (Estilo Tarjeta de Análisis)
+            rx.box(
+                rx.vstack(
+                    rx.hstack(
+                        rx.text("•", color="#3B82F6", font_weight="bold"),
+                        rx.text(
+                            rx.text("Ruta Crítica Analizada:", font_weight="bold", as_="span"),
+                            " Evaluación enfocada en el corredor estratégico de alta demanda: JFK Airport → Times Sq / Theatre District.", 
+                            color="#D1D5DB", 
+                            size="3"
+                        )
+                    ),
+                    rx.hstack(
+                        rx.text("•", color="#3B82F6", font_weight="bold"),
+                        rx.text(
+                            rx.text("Robustez del Método Recursivo:", font_weight="bold", as_="span"),
+                            " El modelo hereda correctamente la inercia del volumen histórico de cierre de diciembre de 2025 de la NYC TLC.", 
+                            color="#D1D5DB", 
+                            size="3"
+                        )
+                    ),
+                    rx.hstack(
+                        rx.text("•", color="#3B82F6", font_weight="bold"),
+                        rx.text(
+                            rx.text("Coherencia Estacional Semanal:", font_weight="bold", as_="span"),
+                            " Se proyecta de manera consistente el patrón de alta y baja demanda que experimentará el sistema de transporte durante el primer mes de 2026.", 
+                            color="#D1D5DB", 
+                            size="3"
+                        )
+                    ),
+                    spacing="2",
+                    align_items="start"
+                ),
+                background_color="#111827",
+                border="1px solid #1E40AF66",
+                padding="20px",
+                border_radius="12px",
+                width="100%"
+            ),
+            
+            width="100%",
+            align_items="start",
+            spacing="3"
+        ),
+        
+        spacing="4",
+        width="100%",
+        max_width="1250px",
     )
 
 def vista_modulo2() -> rx.Component:
