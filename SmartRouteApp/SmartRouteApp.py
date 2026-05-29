@@ -2,8 +2,10 @@ import reflex as rx
 import os
 import torch
 import torch.nn as nn
+import base64
 import pandas as pd
 import numpy as np
+import time
 
 import tensorflow as tf
 from tensorflow.keras.models import load_model
@@ -138,7 +140,8 @@ class AppState(rx.State):
     
     # Módulo 2
     resultado_clasificacion: str = "Esperando imagen de cabina..."
-    imagen_procesada_url: rx.Var[str] = rx.Var.create("")
+    imagen_procesada_url: str = ""
+    imagen_cargada: bool = False  # <--- NUEVA VARIABLE DE ESTADO
     
     # Módulo 3: Nuevo Sistema de Selección de Usuarios y Recomendación Top 3
     usuarios_sistema: list[dict] = lista_usuarios_inicialalizar
@@ -161,19 +164,25 @@ class AppState(rx.State):
         if not archivos:
             return
             
+        # 1. Limpiar estados anteriores
+        self.imagen_cargada = False
+        self.imagen_procesada_url = ""
+        
         archivo = archivos[0]
         upload_data = await archivo.read()
         
-        ruta_salida = rx.get_upload_dir() / archivo.filename
-        with open(ruta_salida, "wb") as f:
-            f.write(upload_data)
-            
-        # Modifica esta línea al final de la función:
-        self.imagen_procesada_url = rx.get_upload_url(archivo.filename)
+        # 2. Convertir instantáneamente a Base64 para la UI del Frontend
+        # Esto crea una URL virtual que el componente rx.image lee al segundo
+        encoded_data = base64.b64encode(upload_data).decode("utf-8")
+        self.imagen_procesada_url = f"data:image/png;base64,{encoded_data}"
+        self.imagen_cargada = True   # <--- Activa la vista de inmediato
 
+        # 3. Procesamiento para la Red Neuronal (Keras) usando BytesIO 
+        # (Así nos evitamos escribir archivos físicos en el disco)
         if modelo_keras is not None:
             try:
-                img = Image.open(ruta_salida).convert("RGB")
+                import io
+                img = Image.open(io.BytesIO(upload_data)).convert("RGB")
                 img = img.resize((224, 224))
                 
                 img_array = np.array(img, dtype=np.float32)
@@ -192,8 +201,7 @@ class AppState(rx.State):
                 self.resultado_clasificacion = f"❌ Error al procesar imagen: {str(e)}"
         else:
             self.resultado_clasificacion = "⚠️ ALERTA (Simulado): Conductor enviando mensajes de texto (texting_phone)"
-            
-                    
+
     def seleccionar_usuario_y_recomendar(self, u_info: dict):
         """Selecciona un usuario de la lista limpia y calcula inmediatamente su Top 3."""
         self.usuario_seleccionado_id = u_info["id"]
@@ -420,49 +428,113 @@ def vista_modulo1() -> rx.Component:
 
 def vista_modulo2() -> rx.Component:
     return rx.vstack(
-        crear_encabezado_seccion("MÓDULO 02 — CLASIFICACIÓN DE CONDUCCIÓN DISTRACTIVA", "Sistema de Clasificación de Conducción Distractiva", "Análisis automatizado de transmisiones en cabina para prevenir siniestros viales."),
+        crear_encabezado_seccion(
+            "MÓDULO 02 — CLASIFICACIÓN DE CONDUCCIÓN DISTRACTIVA", 
+            "Sistema de Clasificación de Conducción Distractiva", 
+            "Análisis automatizado de transmisiones en cabina para prevenir siniestros viales."
+        ),
         rx.box(
             rx.vstack(
+                # 1. Zona de carga de archivos (Upload)
                 rx.upload(
                     rx.vstack(
-                        rx.box(rx.icon(tag="cloud-upload", size=24, color=THEME["colors"]["accent_light"]), background="#3B82F615", border_radius="50%", padding="12px"),
+                        rx.box(
+                            rx.icon(tag="cloud-upload", size=24, color=THEME["colors"]["accent_light"]), 
+                            background="#3B82F615", 
+                            border_radius="50%", 
+                            padding="12px"
+                        ),
                         rx.text("Arrastre o seleccione una captura de cabina", color=THEME["colors"]["text_main"], font_size="14px", font_weight="500"),
                         rx.text("Formatos soportados: PNG, JPG (Máx 10MB)", font_size="12px", color=THEME["colors"]["text_sub"]),
-                        align_items="center", spacing="1"
+                        align_items="center", 
+                        spacing="1"
                     ),
-                    id="subida_cabina", border=f"1.5px dashed {THEME['colors']['border']}", border_radius="12px", padding="32px", width="100%", background=THEME["colors"]["bg_base"], _hover={"border_color": THEME["colors"]["accent"]}, cursor="pointer"
+                    id="subida_cabina", 
+                    border=f"1.5px dashed {THEME['colors']['border']}", 
+                    border_radius="12px", 
+                    padding="32px", 
+                    width="100%", 
+                    background=THEME["colors"]["bg_base"], 
+                    _hover={"border_color": THEME["colors"]["accent"]}, 
+                    cursor="pointer"
                 ),
+                
+                # 2. Botón para activar el backend
                 rx.button(
                     rx.hstack(rx.icon(tag="brain", size=16), rx.text("Correr Diagnóstico con Red Neuronal"), spacing="2"),
                     on_click=AppState.manejar_subida_imagen(rx.upload_files(upload_id="subida_cabina")),
-                    background=THEME["colors"]["accent"], color="white", border_radius="8px", width="100%", padding="12px", height="auto", _hover={"background": "#2563EB"}
+                    background=THEME["colors"]["accent"], 
+                    color="white", 
+                    border_radius="8px", 
+                    width="100%", 
+                    padding="12px", 
+                    height="auto", 
+                    _hover={"background": "#2563EB"}
                 ),
                 
-                # Previsualizador de la imagen cargada por el usuario (CORREGIDO: Eliminada etiqueta redundante)
+                # =====================================================================
+                # BLOQUE CORREGIDO: PREVISUALIZADOR + MENSAJE DE ÉXITO
+                # =====================================================================
                 rx.cond(
-                    AppState.imagen_procesada_url,
-                    rx.center(
-                        rx.image(src=AppState.imagen_procesada_url, height="200px", object_fit="contain", border_radius="8px", border=f"1px solid {THEME['colors']['border']}"),
-                        width="100%", padding="8px"
+                    AppState.imagen_cargada,
+                    rx.vstack(
+                        rx.badge(
+                            rx.hstack(rx.icon(tag="check", size=14), rx.text("Imagen cargada con éxito")),
+                            color_scheme="green", 
+                            variant="surface",
+                            size="2",
+                            width="auto"
+                        ),
+                        rx.center(
+                            rx.image(
+                                src=AppState.imagen_procesada_url,  # Ahora recibe el string Base64 limpio
+                                width="100%",
+                                max_width="380px",
+                                height="auto",
+                                object_fit="contain",
+                                border_radius="10px", 
+                                border=f"1px solid {THEME['colors']['border']}",
+                                box_shadow="lg"
+                            ),
+                            width="100%", 
+                            padding="8px"
+                        ),
+                        align_items="center",
+                        spacing="2",
+                        width="100%"
                     )
-                ),
+                    ),
 
+                # 3. Cuadro de resultados de la IA
                 rx.hstack(
-                    rx.icon(tag="shield-alert", size=18, color=THEME["colors"]["alert"]),
+                    rx.icon(tag="shield-alert", size=18, color=THEME["colors"]["accent"]),
                     rx.vstack(
                         rx.text("RESULTADO DEL ANÁLISIS EN TIEMPO REAL", font_family=THEME["fonts"]["mono"], font_size="10px", color=THEME["colors"]["text_sub"]),
-                        rx.text(AppState.resultado_clasificacion, color=THEME["colors"]["alert"], font_size="14px", font_weight="600"),
-                        align_items="start", spacing="0"
+                        rx.text(
+                            AppState.resultado_clasificacion, 
+                            color=THEME["colors"]["text_main"], # Cambiado a text_main para que no herede siempre color alerta estático
+                            font_size="14px", 
+                            font_weight="600"
+                        ),
+                        align_items="start", 
+                        spacing="0"
                     ),
-                    background="#F59E0B08", border=f"1px solid {THEME['colors']['alert']}33", border_radius="10px", padding="12px 16px", width="100%", align_items="center", spacing="3"
+                    background=f"{THEME['colors']['bg_base']}", 
+                    border=f"1px solid {THEME['colors']['border']}", 
+                    border_radius="10px", 
+                    padding="12px 16px", 
+                    width="100%", 
+                    align_items="center", 
+                    spacing="3"
                 ),
-                width="100%", spacing="4"
+                width="100%", 
+                spacing="4"
             ),
             style=STYLES["card"]
         ),
-        width="100%", align_items="start"
+        width="100%", 
+        align_items="start"
     )
-
 
 # --- VISTA: MÓDULO 3 (SISTEMA DE COMPORTAMIENTO COMPLETO) ---
 def usuario_card_item(user: dict) -> rx.Component:
