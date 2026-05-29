@@ -14,6 +14,9 @@ RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/wh
 
 COPY . .
 
+# Pre-compila el frontend durante el build
+RUN reflex export --frontend-only --no-zip || true
+
 EXPOSE 8080
 
-CMD ["reflex", "run", "--env", "prod", "--backend-host", "0.0.0.0", "--backend-port", "8080", "--loglevel", "debug"]
+CMD ["reflex", "run", "--env", "prod", "--backend-host", "0.0.0.0", "--backend-port", "8080"]
